@@ -54,6 +54,7 @@ class SIMPL:
         evaluate_each_epoch: bool = True,
         save_likelihood_maps: bool = False,
         resample_spike_mask: bool = False,
+        minimum_spikes: int = 1,
     ):
         """Initializes the SIMPL class.
 
@@ -136,7 +137,7 @@ class SIMPL:
         self.T = len(data.time)  # number of time steps
         self.N_neurons = data.Y.shape[1]
         self.N_PFmax = 20  # to keep a fixed shape each tuning curve has max possible number of place fields
-
+        self.minimum_spikes = minimum_spikes
         # SET UP THE ENVIRONMENT
         self.environment = environment
         assert self.D == environment.D, "The environment and data dimensions must match"
@@ -408,7 +409,13 @@ class SIMPL:
         logPYXF_maps = poisson_log_likelihood(
             Y, F, mask=self.spike_mask
         )  # Calc. log-likelihood maps
-        no_spikes = jnp.sum(Y * self.spike_mask, axis=1) == 0
+        # 2025/11/18 Masahiro Nakano
+        # Handling low spike regimes. Change from 0 to low spikes.
+        # no_spikes = (jnp.sum(Y * self.spike_mask, axis=1) == 0)
+        print(
+            f"Debug: Calculating no_spikes mask in E-step. frames with spike counts less than {self.minimum_spikes} are ignored"
+        )
+        no_spikes = jnp.sum(Y * self.spike_mask, axis=1) < self.minimum_spikes
         # Batch this
         mu_l, mode_l, sigma_l = vmap(
             fit_gaussian,
