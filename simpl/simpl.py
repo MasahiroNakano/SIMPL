@@ -28,7 +28,11 @@ from simpl.environment import Environment
 # Kalmax package handles the Kalman filtering and KDE
 from kalmax.kalman import KalmanFilter
 from kalmax.kde import kde
-from kalmax.kde import poisson_log_likelihood, poisson_log_likelihood_trajectory
+from kalmax.kde import (
+    poisson_log_likelihood,
+    poisson_log_likelihood_trajectory,
+    dot_product_correlation,
+)
 from kalmax.utils import fit_gaussian
 from kalmax.kernels import gaussian_kernel
 
@@ -55,6 +59,7 @@ class SIMPL:
         save_likelihood_maps: bool = False,
         resample_spike_mask: bool = False,
         minimum_spikes: int = 1,
+        map_type: str = "poisson",
     ):
         """Initializes the SIMPL class.
 
@@ -150,6 +155,8 @@ class SIMPL:
         self.epoch = -1
         self.evaluate_each_epoch = evaluate_each_epoch
         self.save_likelihood_maps = save_likelihood_maps
+
+        self.map_type = map_type  # "poisson" or "dot_product"
 
         # KERNEL STUFF
         self.kernel = kernel
@@ -406,9 +413,15 @@ class SIMPL:
             The results of the E-step"""
 
         # Batch this
-        logPYXF_maps = poisson_log_likelihood(
-            Y, F, mask=self.spike_mask
-        )  # Calc. log-likelihood maps
+        if self.map_type == "poisson":
+            logPYXF_maps = poisson_log_likelihood(Y, F, mask=self.spike_mask)
+        elif self.map_type == "dot_product":
+            logPYXF_maps = dot_product_correlation(Y, F, mask=self.spike_mask)
+        else:
+            raise ValueError(
+                f"Invalid map_type {self.map_type}. Must be 'poisson' or 'dot_product'."
+            )
+        # Calc. log-likelihood maps
         # 2025/11/18 Masahiro Nakano
         # Handling low spike regimes. Change from 0 to low spikes.
         # no_spikes = (jnp.sum(Y * self.spike_mask, axis=1) == 0)
