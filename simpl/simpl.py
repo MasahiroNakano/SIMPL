@@ -309,7 +309,7 @@ class SIMPL:
             F_prev=self.lastF,
             Xt=self.Xt, 
             Ft=self.Ft,
-            pos=self.M['PX']
+            PX=self.M['PX']
             )
         results = self.dict_to_dataset({**self.M, **self.E, **evals}).expand_dims({'epoch':[self.epoch]})
         self.results = xr.concat([self.results, results], dim='epoch', data_vars="minimal")

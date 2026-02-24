@@ -249,6 +249,7 @@ def create_speckled_mask(size, sparsity=0.1, block_size=10):
     """
     mask = np.ones(size, dtype=bool)
     num_blocks_per_row = int(sparsity * size[0] / block_size)
+    np.random.seed(0)  # For reproducibility
     for row in range(size[1]):
         for block in range(num_blocks_per_row):
             # Randomly choose starting positions within the bounds
